@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тетрис</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #gameCanvas { background: #000; border-radius: 10px; }
+        a {
+            margin-top: 1.5rem;
+            padding: 0.8rem 2rem;
+            background: #4ecdc4;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 1.2rem;
+        }
+        #score { color: #fff; font-size: 1.5rem; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <a href="index.html">На главную</a>
+    <p id="score">Счёт: 0</p>
+    <canvas id="gameCanvas" width="300" height="450"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        let score = 0;
+
+        const cols = 10, rows = 15, size = 30;
+        const board = Array.from({ length: rows }, () => Array(cols).fill(0));
+
+        const pieces = [
+            [[1, 1, 1, 1]],
+            [[1, 1], [1, 1]],
+            [[1, 1, 1], [0, 1, 0]],
+            [[1, 1, 1], [1, 0, 0]],
+            [[1, 1, 1], [0, 0, 1]]
+        ];
+        const colors = ['#4ecdc4', '#ffd93d', '#ff6b6b', '#95e879', '#c4a7e7'];
+
+        let piece = pieces[0][Math.floor(Math.random() * pieces.length)];
+        let color = colors[Math.floor(Math.random() * colors.length)];
+        let x = 4, y = 0;
+
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (board[r][c]) {
+                        ctx.fillStyle = board[r][c];
+                        ctx.fillRect(c * size, r * size, size - 1, size - 1);
+                    }
+                }
+            }
+        }
+
+        function drawPiece() {
+            ctx.fillStyle = color;
+            for (let r = 0; r < piece.length; r++) {
+                for (let c = 0; c < piece[r].length; c++) {
+                    if (piece[r][c]) {
+                        ctx.fillRect((x + c) * size, (y + r) * size, size - 1, size - 1);
+                    }
+                }
+            }
+        }
+
+        function merge() {
+            for (let r = 0; r < piece.length; r++) {
+                for (let c = 0; c < piece[r].length; c++) {
+                    if (piece[r][c]) board[y + r][x + c] = color;
+                }
+            }
+        }
+
+        function clearLines() {
+            for (let r = rows - 1; r >= 0; r--) {
+                if (board[r].every(c => c)) {
+                    board.splice(r, 1);
+                    board.unshift(Array(cols).fill(0));
+                    score += 100;
+                    scoreEl.textContent = 'Счёт: ' + score;
+                    r++;
+                }
+            }
+        }
+
+        function newPiece() {
+            piece = pieces[Math.floor(Math.random() * pieces.length)];
+            color = colors[Math.floor(Math.random() * colors.length)];
+            x = 4; y = 0;
+        }
+
+        function drop() {
+            if (y + piece.length < rows && !piece.some((row, r) => row.some((cell, c) => cell && board[y + r + 1] && board[y + r + 1][x + c]))) {
+                y++;
+            } else {
+                merge();
+                clearLines();
+                newPiece();
+            }
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft' && x > 0) x--;
+            if (e.key === 'ArrowRight' && x + piece[0].length < cols) x++;
+            if (e.key === 'ArrowDown') drop();
+        });
+
+        function gameLoop() {
+            drawBoard();
+            drawPiece();
+            drop();
+            requestAnimationFrame(gameLoop);
+        }
+        setInterval(drop, 500);
+        gameLoop();
+    </script>
+</body>
+</html>

@@ -1,1 +1,77 @@
-круто
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игры</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        h1 {
+            color: #fff;
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+        .buttons {
+            display: flex;
+            gap: 2rem;
+        }
+        .btn {
+            padding: 1.5rem 3rem;
+            font-size: 1.5rem;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+        }
+        .btn:hover {
+            transform: translateY(-5px);
+        }
+        .btn-arkanoid {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+        }
+        .btn-arkanoid:hover {
+            box-shadow: 0 8px 30px rgba(255, 107, 107, 0.6);
+        }
+        .btn-tetris {
+            background: linear-gradient(135deg, #4ecdc4, #44a8a0);
+            box-shadow: 0 5px 20px rgba(78, 205, 196, 0.4);
+        }
+        .btn-tetris:hover {
+            box-shadow: 0 8px 30px rgba(78, 205, 196, 0.6);
+        }
+        .btn-snake {
+            background: linear-gradient(135deg, #95e879, #7cc45e);
+            box-shadow: 0 5px 20px rgba(149, 232, 121, 0.4);
+        }
+        .btn-snake:hover {
+            box-shadow: 0 8px 30px rgba(149, 232, 121, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <h1>Выбери игру</h1>
+    <div class="buttons">
+        <a href="arkanoid.html" class="btn btn-arkanoid">Арканоид</a>
+        <a href="tetris.html" class="btn btn-tetris">Тетрис</a>
+        <a href="snake.html" class="btn btn-snake">Змейка</a>
+    </div>
+</body>
+</html>
