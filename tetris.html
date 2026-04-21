@@ -12,30 +12,61 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a14;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
         }
-        #gameCanvas { background: #0a0a15; border-radius: 10px; box-shadow: 0 0 30px rgba(78, 205, 196, 0.3); }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 50% 0%, rgba(78, 205, 196, 0.1) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 100%, rgba(78, 205, 196, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        #gameCanvas { 
+            background: linear-gradient(180deg, #0d0d1a 0%, #151525 100%); 
+            border-radius: 16px; 
+            box-shadow: 
+                0 0 60px rgba(78, 205, 196, 0.15),
+                inset 0 0 100px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
         a {
             margin-top: 1.5rem;
             padding: 0.8rem 2rem;
-            background: #4ecdc4;
+            background: linear-gradient(135deg, #4ecdc4, #44a8a0);
             color: white;
             text-decoration: none;
-            border-radius: 10px;
-            font-size: 1.2rem;
-            transition: transform 0.2s;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
         }
-        a:hover { transform: scale(1.05); }
-        #score { color: #fff; font-size: 1.5rem; margin-bottom: 1rem; text-shadow: 0 0 10px rgba(78, 205, 196, 0.5); }
-        #instructions { color: #888; font-size: 0.9rem; margin-top: 0.5rem; }
+        a:hover { 
+            transform: scale(1.05); 
+            box-shadow: 0 6px 25px rgba(78, 205, 196, 0.5);
+        }
+        #score { 
+            color: #fff; 
+            font-size: 1.6rem; 
+            margin-bottom: 0.5rem; 
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            text-shadow: 0 0 20px rgba(78, 205, 196, 0.5);
+        }
+        #instructions { color: #666; font-size: 0.9rem; margin-bottom: 1rem; }
     </style>
 </head>
 <body>
-    <a href="index.html">На главную</a>
     <p id="score">Счёт: 0</p>
     <p id="instructions">Стрелки: влево/вправо - движение, вниз - ускорение</p>
     <canvas id="gameCanvas" width="300" height="450"></canvas>
+    <a href="index.html">На главную</a>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -61,7 +92,7 @@
         let x = 4, y = 0;
         let gameOver = false;
         let lastDrop = 0;
-        const dropInterval = 500;
+        const dropInterval = 600;
 
         const keys = { left: false, right: false, down: false };
 
@@ -79,49 +110,49 @@
             return true;
         }
 
+        function drawBlock(cellX, cellY, blockColor) {
+            if (!blockColor) return;
+            ctx.save();
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = blockColor;
+            ctx.fillStyle = blockColor;
+            ctx.beginPath();
+            ctx.roundRect(cellX * size + 1, cellY * size + 1, size - 2, size - 2, 4);
+            ctx.fill();
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.beginPath();
+            ctx.roundRect(cellX * size + 3, cellY * size + 3, size - 8, size / 3, 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
         function drawBoard() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    if (board[r][c]) {
-                        ctx.save();
-                        ctx.shadowBlur = 8;
-                        ctx.shadowColor = board[r][c];
-                        ctx.fillStyle = board[r][c];
-                        ctx.fillRect(c * size + 1, r * size + 1, size - 2, size - 2);
-                        ctx.restore();
-                    }
-                }
-            }
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-            ctx.lineWidth = 1;
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.015)';
             for (let i = 0; i <= cols; i++) {
-                ctx.beginPath();
-                ctx.moveTo(i * size, 0);
-                ctx.lineTo(i * size, canvas.height);
-                ctx.stroke();
+                ctx.fillRect(i * size, 0, 1, canvas.height);
             }
             for (let i = 0; i <= rows; i++) {
-                ctx.beginPath();
-                ctx.moveTo(0, i * size);
-                ctx.lineTo(canvas.width, i * size);
-                ctx.stroke();
+                ctx.fillRect(0, i * size, canvas.width, 1);
+            }
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    drawBlock(c, r, board[r][c]);
+                }
             }
         }
 
         function drawPiece() {
-            ctx.save();
-            ctx.shadowBlur = 12;
-            ctx.shadowColor = color;
-            ctx.fillStyle = color;
             for (let r = 0; r < piece.length; r++) {
                 for (let c = 0; c < piece[r].length; c++) {
                     if (piece[r][c]) {
-                        ctx.fillRect((x + c) * size + 1, (y + r) * size + 1, size - 2, size - 2);
+                        drawBlock(x + c, y + r, color);
                     }
                 }
             }
-            ctx.restore();
         }
 
         function merge() {
@@ -149,9 +180,7 @@
             color = colors[Math.floor(Math.random() * colors.length)];
             x = Math.floor((cols - piece[0].length) / 2);
             y = 0;
-            if (!canMove(0, 0)) {
-                gameOver = true;
-            }
+            if (!canMove(0, 0)) gameOver = true;
         }
 
         function drop() {
@@ -179,24 +208,24 @@
 
         function gameLoop(timestamp) {
             if (gameOver) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = '#ff6b6b';
-                ctx.font = 'bold 36px Arial';
+                ctx.font = 'bold 38px "Segoe UI", Arial';
                 ctx.textAlign = 'center';
-                ctx.shadowBlur = 20;
+                ctx.shadowBlur = 25;
                 ctx.shadowColor = '#ff6b6b';
-                ctx.fillText('Игра окончена!', canvas.width / 2, canvas.height / 2);
-                ctx.fillStyle = '#fff';
-                ctx.font = '24px Arial';
+                ctx.fillText('Игра окончена!', canvas.width / 2, canvas.height / 2 - 10);
                 ctx.shadowBlur = 0;
-                ctx.fillText('Счёт: ' + score, canvas.width / 2, canvas.height / 2 + 50);
+                ctx.fillStyle = '#aaa';
+                ctx.font = '22px "Segoe UI", Arial';
+                ctx.fillText('Счёт: ' + score, canvas.width / 2, canvas.height / 2 + 40);
                 return;
             }
 
-            if (keys.left && canMove(-1, 0)) x--;
-            if (keys.right && canMove(1, 0)) x++;
-            if (keys.down) drop();
+            if (keys.left && canMove(-1, 0)) { x--; keys.left = false; }
+            if (keys.right && canMove(1, 0)) { x++; keys.right = false; }
+            if (keys.down) { drop(); keys.down = false; }
 
             if (timestamp - lastDrop > dropInterval) {
                 drop();

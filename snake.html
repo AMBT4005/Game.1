@@ -12,30 +12,61 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a14;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
         }
-        #gameCanvas { background: #0a0a15; border-radius: 10px; box-shadow: 0 0 40px rgba(149, 232, 121, 0.2); }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 50% 0%, rgba(149, 232, 121, 0.1) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 100%, rgba(149, 232, 121, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        #gameCanvas { 
+            background: linear-gradient(180deg, #0a0f0a 0%, #0f150f 100%); 
+            border-radius: 16px; 
+            box-shadow: 
+                0 0 60px rgba(149, 232, 121, 0.15),
+                inset 0 0 100px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
         a {
             margin-top: 1.5rem;
             padding: 0.8rem 2rem;
-            background: #95e879;
+            background: linear-gradient(135deg, #95e879, #7cc45e);
             color: white;
             text-decoration: none;
-            border-radius: 10px;
-            font-size: 1.2rem;
-            transition: transform 0.2s;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(149, 232, 121, 0.3);
         }
-        a:hover { transform: scale(1.05); }
-        #score { color: #fff; font-size: 1.5rem; margin-bottom: 1rem; text-shadow: 0 0 10px rgba(149, 232, 121, 0.5); }
-        #instructions { color: #888; font-size: 0.9rem; margin-top: 0.5rem; }
+        a:hover { 
+            transform: scale(1.05); 
+            box-shadow: 0 6px 25px rgba(149, 232, 121, 0.5);
+        }
+        #score { 
+            color: #fff; 
+            font-size: 1.6rem; 
+            margin-bottom: 0.5rem; 
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            text-shadow: 0 0 20px rgba(149, 232, 121, 0.5);
+        }
+        #instructions { color: #666; font-size: 0.9rem; margin-bottom: 1rem; }
     </style>
 </head>
 <body>
-    <a href="index.html">На главную</a>
     <p id="score">Счёт: 0</p>
-    <p id="instructions">Используй стрелки для управления</p>
+    <p id="instructions">Стрелки для управления</p>
     <canvas id="gameCanvas" width="480" height="480"></canvas>
+    <a href="index.html">На главную</a>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -50,38 +81,15 @@
         let particles = [];
         let gameOver = false;
 
-        const snakeGradient = ctx.createLinearGradient(0, 0, 100, 100);
-        snakeGradient.addColorStop(0, '#95e879');
-        snakeGradient.addColorStop(1, '#7cc45e');
-
-        function drawStar(x, y, radius, spikes, color) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.fillStyle = color;
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = color;
-            ctx.beginPath();
-            for (let i = 0; i < spikes * 2; i++) {
-                const r = i % 2 === 0 ? radius : radius * 0.5;
-                const angle = (i * Math.PI) / spikes - Math.PI / 2;
-                if (i === 0) ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
-                else ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
-            }
-            ctx.closePath();
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.restore();
-        }
-
         function createParticles(x, y) {
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 12; i++) {
                 particles.push({
                     x: x * size + size / 2,
                     y: y * size + size / 2,
-                    vx: (Math.random() - 0.5) * 6,
-                    vy: (Math.random() - 0.5) * 6,
+                    vx: (Math.random() - 0.5) * 5,
+                    vy: (Math.random() - 0.5) * 5,
                     life: 1,
-                    color: Math.random() > 0.5 ? '#95e879' : '#ff6b6b'
+                    color: Math.random() > 0.5 ? '#95e879' : '#7cc45e'
                 });
             }
         }
@@ -90,90 +98,80 @@
             particles = particles.filter(p => {
                 p.x += p.vx;
                 p.y += p.vy;
-                p.life -= 0.03;
+                p.life -= 0.025;
                 return p.life > 0;
             });
         }
 
         function drawParticles() {
             particles.forEach(p => {
+                ctx.save();
                 ctx.globalAlpha = p.life;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = p.color;
                 ctx.fillStyle = p.color;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.restore();
             });
             ctx.globalAlpha = 1;
         }
 
         function drawGrid() {
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
-            ctx.lineWidth = 1;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.015)';
             for (let i = 0; i <= gridSize; i++) {
-                ctx.beginPath();
-                ctx.moveTo(i * size, 0);
-                ctx.lineTo(i * size, canvas.height);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(0, i * size);
-                ctx.lineTo(canvas.width, i * size);
-                ctx.stroke();
+                ctx.fillRect(i * size, 0, 1, canvas.height);
+                ctx.fillRect(0, i * size, canvas.width, 1);
             }
         }
 
         function drawSnake() {
             snake.forEach((s, i) => {
                 const isHead = i === 0;
-                const brightness = 1 - (i / snake.length) * 0.4;
+                const alpha = 1 - (i / snake.length) * 0.3;
 
                 ctx.save();
-
+                
                 const gradient = ctx.createRadialGradient(
                     s.x * size + size / 2, s.y * size + size / 2, 0,
                     s.x * size + size / 2, s.y * size + size / 2, size / 2
                 );
 
                 if (isHead) {
-                    gradient.addColorStop(0, `rgba(180, 255, 120, ${brightness})`);
-                    gradient.addColorStop(1, `rgba(100, 200, 80, ${brightness})`);
+                    gradient.addColorStop(0, 'rgba(180, 255, 140, 1)');
+                    gradient.addColorStop(1, 'rgba(100, 200, 80, 1)');
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = '#95e879';
                 } else {
-                    gradient.addColorStop(0, `rgba(149, 232, 121, ${brightness})`);
-                    gradient.addColorStop(1, `rgba(80, 160, 60, ${brightness})`);
+                    gradient.addColorStop(0, `rgba(149, 232, 121, ${alpha})`);
+                    gradient.addColorStop(1, `rgba(100, 180, 70, ${alpha})`);
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = 'rgba(149, 232, 121, 0.5)';
                 }
 
-                ctx.shadowBlur = isHead ? 15 : 5;
-                ctx.shadowColor = '#95e879';
                 ctx.fillStyle = gradient;
-
                 ctx.beginPath();
                 ctx.roundRect(s.x * size + 1, s.y * size + 1, size - 2, size - 2, isHead ? 6 : 4);
                 ctx.fill();
 
                 if (isHead) {
                     ctx.fillStyle = '#fff';
-                    const eyeSize = 3;
-                    const eyeOffset = 4;
+                    const eyeSize = 2.5;
+                    const eyeOff = 5;
 
                     if (dx === 1) {
-                        ctx.beginPath();
-                        ctx.arc(s.x * size + size - eyeOffset, s.y * size + eyeOffset, eyeSize, 0, Math.PI * 2);
-                        ctx.arc(s.x * size + size - eyeOffset, s.y * size + size - eyeOffset, eyeSize, 0, Math.PI * 2);
-                        ctx.fill();
+                        ctx.beginPath(); ctx.arc(s.x * size + size - eyeOff, s.y * size + eyeOff, eyeSize, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(s.x * size + size - eyeOff, s.y * size + size - eyeOff, eyeSize, 0, Math.PI * 2); ctx.fill();
                     } else if (dx === -1) {
-                        ctx.beginPath();
-                        ctx.arc(s.x * size + eyeOffset, s.y * size + eyeOffset, eyeSize, 0, Math.PI * 2);
-                        ctx.arc(s.x * size + eyeOffset, s.y * size + size - eyeOffset, eyeSize, 0, Math.PI * 2);
-                        ctx.fill();
+                        ctx.beginPath(); ctx.arc(s.x * size + eyeOff, s.y * size + eyeOff, eyeSize, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(s.x * size + eyeOff, s.y * size + size - eyeOff, eyeSize, 0, Math.PI * 2); ctx.fill();
                     } else if (dy === -1) {
-                        ctx.beginPath();
-                        ctx.arc(s.x * size + eyeOffset, s.y * size + eyeOffset, eyeSize, 0, Math.PI * 2);
-                        ctx.arc(s.x * size + size - eyeOffset, s.y * size + eyeOffset, eyeSize, 0, Math.PI * 2);
-                        ctx.fill();
+                        ctx.beginPath(); ctx.arc(s.x * size + eyeOff, s.y * size + eyeOff, eyeSize, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(s.x * size + size - eyeOff, s.y * size + eyeOff, eyeSize, 0, Math.PI * 2); ctx.fill();
                     } else {
-                        ctx.beginPath();
-                        ctx.arc(s.x * size + eyeOffset, s.y * size + size - eyeOffset, eyeSize, 0, Math.PI * 2);
-                        ctx.arc(s.x * size + size - eyeOffset, s.y * size + size - eyeOffset, eyeSize, 0, Math.PI * 2);
-                        ctx.fill();
+                        ctx.beginPath(); ctx.arc(s.x * size + eyeOff, s.y * size + size - eyeOff, eyeSize, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.arc(s.x * size + size - eyeOff, s.y * size + size - eyeOff, eyeSize, 0, Math.PI * 2); ctx.fill();
                     }
                 }
 
@@ -183,25 +181,31 @@
 
         function drawFood() {
             ctx.save();
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = '#ff6b6b';
-
+            
             const gradient = ctx.createRadialGradient(
                 food.x * size + size / 2 - 2, food.y * size + size / 2 - 2, 0,
                 food.x * size + size / 2, food.y * size + size / 2, size / 2
             );
-            gradient.addColorStop(0, '#ff8888');
-            gradient.addColorStop(1, '#ff6b6b');
+            gradient.addColorStop(0, '#ff9999');
+            gradient.addColorStop(1, '#ff5555');
 
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ff6b6b';
             ctx.fillStyle = gradient;
             ctx.beginPath();
             ctx.roundRect(food.x * size + 2, food.y * size + 2, size - 4, size - 4, 5);
             ctx.fill();
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.beginPath();
+            ctx.roundRect(food.x * size + 4, food.y * size + 4, size / 3, size / 4, 2);
+            ctx.fill();
+            
             ctx.restore();
         }
 
         function draw() {
-            ctx.fillStyle = '#0a0a15';
+            ctx.fillStyle = '#050805';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             drawGrid();
@@ -238,24 +242,24 @@
 
         function gameLoop() {
             if (gameOver) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = '#ff6b6b';
-                ctx.font = 'bold 40px Arial';
+                ctx.font = 'bold 42px "Segoe UI", Arial';
                 ctx.textAlign = 'center';
-                ctx.shadowBlur = 20;
+                ctx.shadowBlur = 30;
                 ctx.shadowColor = '#ff6b6b';
-                ctx.fillText('Игра окончена!', canvas.width / 2, canvas.height / 2);
-                ctx.fillStyle = '#fff';
-                ctx.font = '24px Arial';
+                ctx.fillText('Игра окончена!', canvas.width / 2, canvas.height / 2 - 10);
                 ctx.shadowBlur = 0;
-                ctx.fillText('Счёт: ' + score, canvas.width / 2, canvas.height / 2 + 50);
+                ctx.fillStyle = '#aaa';
+                ctx.font = '22px "Segoe UI", Arial';
+                ctx.fillText('Счёт: ' + score, canvas.width / 2, canvas.height / 2 + 40);
                 return;
             }
 
             draw();
             move();
-            setTimeout(gameLoop, 120);
+            setTimeout(gameLoop, 140);
         }
 
         document.addEventListener('keydown', e => {
