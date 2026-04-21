@@ -15,7 +15,7 @@
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        #gameCanvas { background: #000; border-radius: 10px; }
+        #gameCanvas { background: #0a0a15; border-radius: 10px; box-shadow: 0 0 40px rgba(149, 232, 121, 0.2); }
         a {
             margin-top: 1.5rem;
             padding: 0.8rem 2rem;
@@ -24,35 +24,191 @@
             text-decoration: none;
             border-radius: 10px;
             font-size: 1.2rem;
+            transition: transform 0.2s;
         }
-        #score { color: #fff; font-size: 1.5rem; margin-bottom: 1rem; }
+        a:hover { transform: scale(1.05); }
+        #score { color: #fff; font-size: 1.5rem; margin-bottom: 1rem; text-shadow: 0 0 10px rgba(149, 232, 121, 0.5); }
+        #instructions { color: #888; font-size: 0.9rem; margin-top: 0.5rem; }
     </style>
 </head>
 <body>
     <a href="index.html">На главную</a>
     <p id="score">Счёт: 0</p>
-    <canvas id="gameCanvas" width="450" height="450"></canvas>
+    <p id="instructions">Используй стрелки для управления</p>
+    <canvas id="gameCanvas" width="480" height="480"></canvas>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreEl = document.getElementById('score');
         let score = 0;
 
-        const size = 15;
-        const snake = [{ x: 7, y: 7 }];
-        let food = { x: 10, y: 10 };
+        const size = 16;
+        const gridSize = 30;
+        const snake = [{ x: 15, y: 15 }];
+        let food = { x: 20, y: 20 };
         let dx = 1, dy = 0;
+        let particles = [];
+        let gameOver = false;
+
+        const snakeGradient = ctx.createLinearGradient(0, 0, 100, 100);
+        snakeGradient.addColorStop(0, '#95e879');
+        snakeGradient.addColorStop(1, '#7cc45e');
+
+        function drawStar(x, y, radius, spikes, color) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.fillStyle = color;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = color;
+            ctx.beginPath();
+            for (let i = 0; i < spikes * 2; i++) {
+                const r = i % 2 === 0 ? radius : radius * 0.5;
+                const angle = (i * Math.PI) / spikes - Math.PI / 2;
+                if (i === 0) ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                else ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        function createParticles(x, y) {
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: x * size + size / 2,
+                    y: y * size + size / 2,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    life: 1,
+                    color: Math.random() > 0.5 ? '#95e879' : '#ff6b6b'
+                });
+            }
+        }
+
+        function updateParticles() {
+            particles = particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.03;
+                return p.life > 0;
+            });
+        }
+
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= gridSize; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * size, 0);
+                ctx.lineTo(i * size, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * size);
+                ctx.lineTo(canvas.width, i * size);
+                ctx.stroke();
+            }
+        }
+
+        function drawSnake() {
+            snake.forEach((s, i) => {
+                const isHead = i === 0;
+                const brightness = 1 - (i / snake.length) * 0.4;
+
+                ctx.save();
+
+                const gradient = ctx.createRadialGradient(
+                    s.x * size + size / 2, s.y * size + size / 2, 0,
+                    s.x * size + size / 2, s.y * size + size / 2, size / 2
+                );
+
+                if (isHead) {
+                    gradient.addColorStop(0, `rgba(180, 255, 120, ${brightness})`);
+                    gradient.addColorStop(1, `rgba(100, 200, 80, ${brightness})`);
+                } else {
+                    gradient.addColorStop(0, `rgba(149, 232, 121, ${brightness})`);
+                    gradient.addColorStop(1, `rgba(80, 160, 60, ${brightness})`);
+                }
+
+                ctx.shadowBlur = isHead ? 15 : 5;
+                ctx.shadowColor = '#95e879';
+                ctx.fillStyle = gradient;
+
+                ctx.beginPath();
+                ctx.roundRect(s.x * size + 1, s.y * size + 1, size - 2, size - 2, isHead ? 6 : 4);
+                ctx.fill();
+
+                if (isHead) {
+                    ctx.fillStyle = '#fff';
+                    const eyeSize = 3;
+                    const eyeOffset = 4;
+
+                    if (dx === 1) {
+                        ctx.beginPath();
+                        ctx.arc(s.x * size + size - eyeOffset, s.y * size + eyeOffset, eyeSize, 0, Math.PI * 2);
+                        ctx.arc(s.x * size + size - eyeOffset, s.y * size + size - eyeOffset, eyeSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (dx === -1) {
+                        ctx.beginPath();
+                        ctx.arc(s.x * size + eyeOffset, s.y * size + eyeOffset, eyeSize, 0, Math.PI * 2);
+                        ctx.arc(s.x * size + eyeOffset, s.y * size + size - eyeOffset, eyeSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (dy === -1) {
+                        ctx.beginPath();
+                        ctx.arc(s.x * size + eyeOffset, s.y * size + eyeOffset, eyeSize, 0, Math.PI * 2);
+                        ctx.arc(s.x * size + size - eyeOffset, s.y * size + eyeOffset, eyeSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        ctx.beginPath();
+                        ctx.arc(s.x * size + eyeOffset, s.y * size + size - eyeOffset, eyeSize, 0, Math.PI * 2);
+                        ctx.arc(s.x * size + size - eyeOffset, s.y * size + size - eyeOffset, eyeSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                ctx.restore();
+            });
+        }
+
+        function drawFood() {
+            ctx.save();
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ff6b6b';
+
+            const gradient = ctx.createRadialGradient(
+                food.x * size + size / 2 - 2, food.y * size + size / 2 - 2, 0,
+                food.x * size + size / 2, food.y * size + size / 2, size / 2
+            );
+            gradient.addColorStop(0, '#ff8888');
+            gradient.addColorStop(1, '#ff6b6b');
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.roundRect(food.x * size + 2, food.y * size + 2, size - 4, size - 4, 5);
+            ctx.fill();
+            ctx.restore();
+        }
 
         function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0a0a15';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.fillStyle = '#95e879';
-            snake.forEach(s => {
-                ctx.fillRect(s.x * size, s.y * size, size - 1, size - 1);
-            });
-
-            ctx.fillStyle = '#ff6b6b';
-            ctx.fillRect(food.x * size, food.y * size, size - 1, size - 1);
+            drawGrid();
+            updateParticles();
+            drawParticles();
+            drawFood();
+            drawSnake();
         }
 
         function move() {
@@ -62,25 +218,44 @@
             if (head.x === food.x && head.y === food.y) {
                 score += 10;
                 scoreEl.textContent = 'Счёт: ' + score;
-                food = { x: Math.floor(Math.random() * 30), y: Math.floor(Math.random() * 30) };
+                createParticles(food.x, food.y);
+                food = { x: Math.floor(Math.random() * gridSize), y: Math.floor(Math.random() * gridSize) };
             } else {
                 snake.pop();
             }
 
-            if (head.x < 0 || head.x >= 30 || head.y < 0 || head.y >= 30) {
-                ctx.fillStyle = '#fff';
-                ctx.font = '30px Arial';
-                ctx.fillText('Игра окончена', 150, 225);
-                return false;
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    gameOver = true;
+                    break;
+                }
             }
 
-            return true;
+            if (head.x < 0 || head.x >= gridSize || head.y < 0 || head.y >= gridSize) {
+                gameOver = true;
+            }
         }
 
         function gameLoop() {
+            if (gameOver) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ff6b6b';
+                ctx.font = 'bold 40px Arial';
+                ctx.textAlign = 'center';
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#ff6b6b';
+                ctx.fillText('Игра окончена!', canvas.width / 2, canvas.height / 2);
+                ctx.fillStyle = '#fff';
+                ctx.font = '24px Arial';
+                ctx.shadowBlur = 0;
+                ctx.fillText('Счёт: ' + score, canvas.width / 2, canvas.height / 2 + 50);
+                return;
+            }
+
             draw();
-            if (!move()) return;
-            setTimeout(gameLoop, 150);
+            move();
+            setTimeout(gameLoop, 120);
         }
 
         document.addEventListener('keydown', e => {
@@ -88,6 +263,7 @@
             if (e.key === 'ArrowDown' && dy !== -1) { dx = 0; dy = 1; }
             if (e.key === 'ArrowLeft' && dx !== 1) { dx = -1; dy = 0; }
             if (e.key === 'ArrowRight' && dx !== -1) { dx = 1; dy = 0; }
+            e.preventDefault();
         });
 
         gameLoop();
